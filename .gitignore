@@ -1,0 +1,6 @@
+.env
+output/submissions.json
+output/product.json
+__pycache__/
+*.pyc
+images/
