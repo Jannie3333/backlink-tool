@@ -1,42 +1,40 @@
 # -*- coding: utf-8 -*-
 """
 外链追踪模块
-定期检查已提交的网站是否收录了 Pixocto.ai，发现上线时桌面弹窗通知。
+定期检查已提交的网站是否收录了目标产品，发现上线时桌面弹窗通知。
 """
 import re
 import time
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 import submissions_store as store
+from product_manager import load_product
 
-# 要搜索的目标关键词（只要页面出现其中任一即视为上线）
-TARGET_KEYWORDS = ["pixocto.ai", "pixocto", "Pixocto"]
+def _get_keywords():
+    p = load_product()
+    domain = p.get("domain", "")
+    name   = p.get("name", "")
+    kws = [kw for kw in [domain, name.lower(), name] if kw]
+    return kws if kws else ["your-product"]
 
-# 每个域名要检查的路径（首页 + 常见目录页）
 CHECK_PATHS = [
     "",
     "/tools", "/ai-tools", "/products", "/directory",
     "/tools/image", "/tools/video", "/ai-image", "/ai-video",
     "/category/ai-tools", "/category/image-generation",
-    "/category/video-generation", "/listing/pixocto",
+    "/category/video-generation",
 ]
 
 
-# ── 桌面通知 ───────────────────────────────────────────
 def _notify_desktop(domain: str, live_url: str):
-    """Windows 桌面弹窗通知"""
+    p = load_product()
+    product_name = p.get("domain", "产品")
     title   = "外链上线通知！"
-    message = f"pixocto.ai 已被 {domain} 收录！\n{live_url}"
+    message = f"{product_name} 已被 {domain} 收录！\n{live_url}"
     try:
         from plyer import notification
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="外链工具箱",
-            timeout=15,
-        )
+        notification.notify(title=title, message=message, app_name="外链工具箱", timeout=15)
     except Exception:
-        # plyer 不可用时，用 PowerShell 发 Toast（Windows 10/11 原生）
         try:
             import subprocess
             ps_script = f"""
@@ -50,18 +48,17 @@ $n.Dispose()
 """
             subprocess.Popen(
                 ["powershell", "-WindowStyle", "Hidden", "-Command", ps_script],
-                creationflags=0x08000000  # CREATE_NO_WINDOW
+                creationflags=0x08000000
             )
         except Exception:
-            pass  # 静默失败，终端里已经会打印
+            pass
 
 
-# ── 检查单个域名 ───────────────────────────────────────
 def _check_domain(page, domain: str, log) -> tuple[bool, str]:
-    """
-    访问域名的多个页面，查找 pixocto.ai 关键词。
-    返回 (found: bool, live_url: str)
-    """
+    keywords = _get_keywords()
+    p = load_product()
+    domain_kw = p.get("domain", "").split(".")[0] if p.get("domain") else "your-product"
+
     for path in CHECK_PATHS:
         url = f"https://{domain}{path}"
         try:
@@ -70,9 +67,8 @@ def _check_domain(page, domain: str, log) -> tuple[bool, str]:
                 continue
             time.sleep(1.5)
             content = page.content()
-            if any(kw.lower() in content.lower() for kw in TARGET_KEYWORDS):
-                # 找出具体的链接
-                links = re.findall(r'href="([^"]*pixocto[^"]*)"', content, re.IGNORECASE)
+            if any(kw.lower() in content.lower() for kw in keywords):
+                links = re.findall(r'href="([^"]*' + re.escape(domain_kw) + r'[^"]*)"', content, re.IGNORECASE)
                 live_url = links[0] if links else url
                 if not live_url.startswith("http"):
                     live_url = f"https://{domain}{live_url}"
@@ -82,13 +78,7 @@ def _check_domain(page, domain: str, log) -> tuple[bool, str]:
     return False, ""
 
 
-# ── 运行一轮检查 ───────────────────────────────────────
 def run_check(log_cb=None, check_all: bool = False) -> dict:
-    """
-    检查所有待确认的提交。
-    check_all=True 时重新检查全部（含已标记 not_found 的）
-    返回统计 dict
-    """
     def log(msg):
         if log_cb:
             log_cb(msg)
@@ -103,26 +93,21 @@ def run_check(log_cb=None, check_all: bool = False) -> dict:
         return {"total": 0, "new_live": 0, "still_pending": 0}
 
     log(f"  共 {len(targets)} 个域名待检查...\n")
-
     stats = {"total": len(targets), "new_live": 0, "still_pending": 0}
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        ctx     = browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            )
-        )
+        ctx = browser.new_context(user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ))
         page = ctx.new_page()
 
         for i, record in enumerate(targets, 1):
             domain = record["domain"]
             log(f"  [{i}/{len(targets)}] 检查 {domain} ...")
-
             found, live_url = _check_domain(page, domain, log)
-
             if found:
                 store.mark_live(domain, live_url)
                 store.mark_notified(domain)
@@ -133,7 +118,6 @@ def run_check(log_cb=None, check_all: bool = False) -> dict:
                 store.mark_not_found(domain)
                 log(f"  - 未收录")
                 stats["still_pending"] += 1
-
             time.sleep(0.5)
 
         browser.close()
@@ -141,11 +125,7 @@ def run_check(log_cb=None, check_all: bool = False) -> dict:
     return stats
 
 
-# ── 自动循环追踪模式 ───────────────────────────────────
 def run_auto_loop(interval_hours: float, log_cb=None):
-    """
-    每隔 interval_hours 小时检查一次，直到用户按 Ctrl+C。
-    """
     def log(msg):
         if log_cb:
             log_cb(msg)
