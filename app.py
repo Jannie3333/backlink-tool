@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-外链工具箱 — Pixocto.ai
+外链工具箱
 双功能：外链调研 + 外链自动提交
 """
 import streamlit as st
@@ -128,7 +128,7 @@ st.markdown("""
 st.markdown("""
 <div class="brand-bar">
   <span class="logo">🔗 外链工具箱</span>
-  <span class="sub">Pixocto.ai · 外链调研 & 自动提交</span>
+  <span class="sub">外链调研 & 自动提交</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -523,7 +523,7 @@ elif st.session_state.mode == "direct":
     st.markdown("")
 
     # 产品信息折叠
-    with st.expander("📋 产品信息（Pixocto.ai）", expanded=False):
+    with st.expander("📋 产品信息", expanded=False):
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(f"**名称：** {PRODUCT['name']}")
