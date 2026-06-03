@@ -11,17 +11,17 @@ IMAGES_DIR  = Path(__file__).parent / "images"
 
 # (key, 显示名称, 必填, 提示文字)
 FIELDS = [
-    ("name",            "产品名称",         True,  "如：Pixocto.ai"),
-    ("domain",          "产品域名",         True,  "如：pixocto.ai（不含 http://）"),
+    ("name",            "产品名称",         True,  "如：YourProduct.ai"),
+    ("domain",          "产品域名",         True,  "如：YourProduct.ai（不含 http://）"),
     ("price",           "价格",             True,  "如：$1/Mo 或 Free"),
-    ("pricing_url",     "Pricing 页面地址", True,  "如：https://pixocto.ai/pricing"),
-    ("title",           "产品标题",         True,  "如：Pixocto · All-In-One Creative Platform"),
+    ("pricing_url",     "Pricing 页面地址", True,  "如：https://YourProduct.ai/pricing"),
+    ("title",           "产品标题",         True,  "如：YourProduct · Tagline"),
     ("short_desc",      "短描述",           True,  "100 字以内，适合 tagline / summary"),
     ("long_desc",       "长描述",           True,  "200 字以上，适合 About / Description"),
     ("keywords",        "关键词",           True,  "逗号分隔，如：AI image generator, text to video"),
     ("submitter_name",  "提交人姓名",       True,  "如：Jannie Monroe"),
-    ("submitter_email", "提交邮箱",         True,  "如：contact@pixocto.ai"),
-    ("social_links",    "社媒链接",         True,  "逗号分隔，如：https://x.com/pixocto"),
+    ("submitter_email", "提交邮箱",         True,  "如：contact@YourProduct.ai"),
+    ("social_links",    "社媒链接",         True,  "逗号分隔，如：https://x.com/yourproduct"),
     ("affiliate_url",   "联盟计划网址",     False, "没有直接按 Enter 跳过"),
     ("company_name",    "公司名称",         True,  "如：LUCKY DAYS CO LTD"),
     ("company_address", "公司地址",         True,  "如：100 N HOWARD ST STE R, SPOKANE, WA 99201"),
