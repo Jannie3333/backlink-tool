@@ -10,7 +10,7 @@ def clear():
 
 def banner():
     print("=" * 55)
-    print("  外链工具箱 v2.0  |  Pixocto.ai")
+    print("  外链工具箱 v2.0")
     print("=" * 55)
 
 def menu():
